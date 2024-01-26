@@ -2,6 +2,8 @@ from sqlalchemy import create_engine, URL, text
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.orm import sessionmaker
 
+from lesson_2 import Base
+
 # DB와 연결하기 위한 connection engine 생성
 # connection string form: driver+postgrsql://user:password@host:port/dbname
 url = URL.create(
@@ -40,40 +42,47 @@ session_pool = sessionmaker(engine)
 # session.close()
 
 # 2. with open 메소드. close는 자동으로 해준다. 앞에 async 붙이면 async로도 동작함.
-with session_pool() as session:
-    # ORM 없이 sql문을 직접 입력하는 방식
-    session.execute(text("""
-        CREATE TABLE users
-(
-    telegram_id   BIGINT PRIMARY KEY,
-    full_name     VARCHAR(255) NOT NULL,
-    username      VARCHAR(255),
-    language_code VARCHAR(255) NOT NULL,
-    created_at    TIMESTAMP DEFAULT NOW(),
-    referrer_id   BIGINT,
-    FOREIGN KEY (referrer_id)
-        REFERENCES users (telegram_id)
-        ON DELETE SET NULL
-);  
-    """))
-    session.commit()
-    insert_query = text("""
-    INSERT INTO users (telegram_id, full_name, username, language_code, referrer_id)
-    VALUES (1, 'John Doe', 'johndoe', 'en', NULL),
-              (2, 'Jane Doe', 'janedoe', 'en', 1);
-    """)
-    session.execute(insert_query)
-    session.commit()
-    select_query = text("""
-        SELECT * FROM users;
-    """)
-    result = session.execute(select_query)
-    print(result.all()) # <sqlalchemy.engine.cursor.CursorResult Object>
-    for row in result:
-        print(row) # (1, 'John Doe', 'johndoe', 'en', NULL) ...
-        print(row.telegram_id) # 1
-
-    rows = result.all() # python list로 변환
+# with session_pool() as session:
+#     # ORM 없이 sql문을 직접 입력하는 방식
+#     session.execute(text("""
+#         CREATE TABLE users
+# (
+#     telegram_id   BIGINT PRIMARY KEY,
+#     full_name     VARCHAR(255) NOT NULL,
+#     username      VARCHAR(255),
+#     language_code VARCHAR(255) NOT NULL,
+#     created_at    TIMESTAMP DEFAULT NOW(),
+#     referrer_id   BIGINT,
+#     FOREIGN KEY (referrer_id)
+#         REFERENCES users (telegram_id)
+#         ON DELETE SET NULL
+# );
+#     """))
+#     session.commit()
+#     insert_query = text("""
+#     INSERT INTO users (telegram_id, full_name, username, language_code, referrer_id)
+#     VALUES (1, 'John Doe', 'johndoe', 'en', NULL),
+#               (2, 'Jane Doe', 'janedoe', 'en', 1);
+#     """)
+#     session.execute(insert_query)
+#     session.commit()
+#     select_query = text("""
+#         SELECT * FROM users;
+#     """)
+#     result = session.execute(select_query)
+#     print(result.all()) # <sqlalchemy.engine.cursor.CursorResult Object>
+#     for row in result:
+#         print(row) # (1, 'John Doe', 'johndoe', 'en', NULL) ...
+#         print(row.telegram_id) # 1
+#
+#     rows = result.all() # python list로 변환
 
 
 # async_sessionmaker() -> aync session을 만들 때 사용하는 함수.
+
+# lesson2에서 만든 object -> DB로 생성
+# Base 클래스를 상속한 모든 object를 DB table로 매핑한다. DB에 이미 있으면 modify하지 않음.
+# 올바른 방법은 아니다. track changes하기엔 적합하지 않음.
+# Base.metadata.drop_all(engine)
+Base.metadata.create_all(engine)
+
